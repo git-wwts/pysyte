@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pysyte"
-dynamic = ["version"]
+version = "0.8.71"
 description = "Pysyte extends Python"
 readme = "README.rst"
 requires-python = ">=3.9"
