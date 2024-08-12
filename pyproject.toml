@@ -131,11 +131,9 @@ commands = [
     ["py.test", "--cov=pysyte", "pysyte" ]
 ]
 
-[tool.tox.env.dev]
+[tool.tox.env.devs]
 deps = [".[dev]"]
 commands = [
-    ["black", "-S", "--check", "pysyte"],
-    ["blackdoc", "-S", "--check", "--include", "[.](md|py|test|tests)", "pysyte"],
     ["py.test", "--exitfirst", "pysyte" ]
 ]
 
