@@ -110,6 +110,7 @@ exclude_also = [
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
+addopts = "--doctest-modules --doctest-glob=*.test --doctest-glob=*.tests"
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
 
 [tool.tox]
@@ -127,7 +128,7 @@ commands = [
 [tool.tox.env.tests]
 deps = [".[test]"]
 commands = [
-    ["py.test", "--cov=pysyte", "--doctest-modules", "--doctest-glob=*.test", "--doctest-glob=*.tests"]
+    ["py.test", "--cov=pysyte", "pysyte" ]
 ]
 
 [tool.tox.env.dev]
@@ -135,7 +136,7 @@ deps = [".[dev]"]
 commands = [
     ["black", "-S", "--check", "pysyte"],
     ["blackdoc", "-S", "--check", "--include", "[.](md|py|test|tests)", "pysyte"],
-    ["py.test", "pysyte", "--exitfirst", "--doctest-modules", "--doctest-glob=*.test", "--doctest-glob=*.tests"]
+    ["py.test", "--exitfirst", "pysyte" ]
 ]
 
 [project.scripts]
