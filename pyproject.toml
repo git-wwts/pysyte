@@ -109,8 +109,7 @@ exclude_also = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["*.test", "*.tests"]
+testpaths = ["test"]
 doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
 
 [tool.tox]
