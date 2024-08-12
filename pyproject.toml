@@ -98,6 +98,13 @@ exclude = ["test_*.py"]
 max-line-length = 88
 ignore = ["E731", "E203", "W503"]
 
+[tool.mypy]
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
+check_untyped_defs = true
+strict_optional = true
+
 [tool.coverage.run]
 omit = ["*/test/*"]
 
@@ -122,7 +129,7 @@ commands = [
     ["black", "-S", "--check", "pysyte"],
     ["blackdoc", "-S", "--include", "[.](md|py|test|tests)", "--check", "pysyte"],
     ["flake8", "pysyte"],
-    ["mypy", "--install-types", "--non-interactive", "--ignore-missing-imports", "pysyte"],
+    ["mypy", "pysyte"],
 ]
 
 [tool.tox.env.tests]
