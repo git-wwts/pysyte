@@ -143,4 +143,4 @@ commands = [
 kat = "pysyte.kat.__main__:main"
 keys = "pysyte.keys.__main__:main"
 imports = "pysyte.imports.__main__:main"
-short_dir = "bin.short_dir:main"
+short_dir = "pysyte.short_dir.__main__:main"
