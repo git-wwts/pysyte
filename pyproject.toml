@@ -44,6 +44,12 @@ lint = [
     "black",
     "blackdoc",
     "flake8",
+    "flake8-bugbear",
+    "flake8-comprehensions",
+    "flake8-eradicate",
+    "flake8-isort",
+    "Flake8-pyproject",
+    "isort",
     "mypy",
 ]
 
@@ -94,6 +100,7 @@ include = ["pysyte*"]
 exclude = ["test_*.py"]
 
 [tool.flake8]
+# https://black.readthedocs.io/en/stable/compatible_configs.html#flake8
 max-line-length = 88
 ignore = ["E731", "E203", "W503"]
 
