@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pysyte"
-version = "0.8.71"   # version is controlled by bumpversion, which rewrites this
+version = "0.8.74"   # version is controlled by bumpversion, which rewrites this
 description = "Pysyte extends Python"
 readme = "README.rst"
 requires-python = ">=3.9"
