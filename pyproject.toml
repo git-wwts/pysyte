@@ -1,3 +1,157 @@
 [build-system]
-requires = [ "setuptools >= 65.5.1", "wheel >= 0.29.0"]
+requires = ["setuptools>=65.5.1", "wheel>=0.29.0"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "pysyte"
+version = "0.8.71"   # version is controlled by bumpversion, which rewrites this
+description = "Pysyte extends Python"
+readme = "README.rst"
+requires-python = ">=3.9"
+license = {text = "MIT License"}
+authors = [
+    {name = "jalanb", email = "github@al-got-rhythm.net"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3.9",
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+# Core dependencies
+dependencies = [
+    "bidict",
+    "boltons",
+    "deprecated",
+    "inflect>=2.1.0",
+    "path.py==7.7.1",
+    "pym",
+    "pyyaml",
+    "rich",
+    "stackprinter",
+    "textual",
+    "yamlreader",
+]
+
+[project.optional-dependencies]
+# Linting tools - standalone, no project dependencies needed
+lint = [
+    "black",
+    "blackdoc",
+    "flake8",
+    "flake8-bugbear",
+    "flake8-comprehensions",
+    "flake8-eradicate",
+    "flake8-isort",
+    "Flake8-pyproject",
+    "isort",
+    "mypy",
+]
+
+# Testing needs project + dependencies
+test = [
+    "pysyte",
+    "callee",
+    "codecov",
+    "coverage",
+    "pytest",
+    "pytest-cov",
+    "tox",
+]
+
+# DevOps needs testing capabilities plus deployment tools
+devops = [
+    "pysyte[test]",
+    "pysyte[lint]",
+    "bump2version",
+    "ansible",
+    "pipx",
+    "pyinfra",
+    "build",
+    "twine",
+]
+
+# Full development environment
+dev = [
+    "pysyte[devops]",
+    "httpie",
+    "ipython",
+    "pudb",
+    "pytest-pudb",
+    "pytest-sugar",
+    "sh",
+]
+
+[project.urls]
+Homepage = "https://github.com/jalanb/pysyte"
+
+[tool.setuptools.package-data]
+# These patterns include doctests, which serve as both documentation and test cases,
+# potentially useful for end users of pysyte.
+pysyte = ["**/*.test", "**/*.tests", "**/*.yaml"]
+
+[tool.setuptools.packages.find]
+include = ["pysyte*"]
+exclude = ["test_*.py"]
+
+[tool.flake8]
+# https://black.readthedocs.io/en/stable/compatible_configs.html#flake8
+max-line-length = 88
+ignore = ["E731", "E203", "W503"]
+
+[tool.mypy]
+ignore_missing_imports = true
+install_types = true
+non_interactive = true
+check_untyped_defs = true
+strict_optional = true
+
+[tool.coverage.run]
+omit = ["*/test/*"]
+
+[tool.coverage.report]
+exclude_also = [
+    "if __name__ == \"__main__\":",
+    "raise AssertionError",
+    "raise NotImplementedError",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = "--doctest-modules --doctest-glob=*.test --doctest-glob=*.tests"
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+
+[tool.tox]
+env_list = ["lints", "tests"]
+
+[tool.tox.env.lints]
+deps = [".[lint]"]
+commands = [
+    ["black", "-S", "--check", "pysyte"],
+    ["blackdoc", "-S", "--include", "[.](md|py|test|tests)", "--check", "pysyte"],
+    ["flake8", "pysyte"],
+    ["mypy", "pysyte"],
+]
+
+[tool.tox.env.tests]
+deps = [".[test]"]
+commands = [
+    ["py.test", "--cov=pysyte", "pysyte" ]
+]
+
+[tool.tox.env.devs]
+deps = [".[dev]"]
+commands = [
+    ["py.test", "--exitfirst", "pysyte" ]
+]
+
+[project.scripts]
+kat = "pysyte.kat.__main__:main"
+keys = "pysyte.keys.__main__:main"
+imports = "pysyte.imports.__main__:main"
+short_dir = "pysyte.short_dir.__main__:main"

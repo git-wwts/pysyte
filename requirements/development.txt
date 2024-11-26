@@ -1,8 +1,0 @@
--r testing.txt
-
-httpie
-ipython
-pudb
-pytest-pudb
-pytest-sugar
-sh
