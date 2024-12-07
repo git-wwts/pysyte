@@ -4,14 +4,13 @@ This module was a simplifying proxy to stdlib's sys.exit()
     but it's grown since then
 """
 
+import bdb
 import sys
 from dataclasses import dataclass
-from typing import Any
-from typing import Dict
 from typing import Optional
 
-
 from pysyte.cli import arguments
+from pysyte.cli import app
 from pysyte.cli.config import load_configs
 from pysyte.types.paths import makepath
 from pysyte.types.methods import Callable
@@ -21,7 +20,6 @@ from pysyte.types.methods import Method
 class MainMethod(Method):
     def __init__(self, method):
         super().__init__(method)
-        self.doc = self.doc if self.doc else self.module.__doc__
         self.in_main_module = self.module.__name__ == "__main__"
         self.needs_args = self.argcount > 0
         self.needs_one_arg = self.argcount == 1
@@ -29,19 +27,31 @@ class MainMethod(Method):
     def __call__(self, *args_, **kwargs):
         return self.method(*args_, **kwargs)
 
+    @property
+    def doc(self) -> str:
+        for doc in (super().doc, self.module.__doc__):
+            if doc:
+                return doc
+        return ""
 
-ParseCaller = Callable[[arguments.ArgumentsParser], arguments.ArgumentsParser]
+
+ArgumentsParsers = Callable[[arguments.ArgumentsParser], arguments.ArgumentsParser]
 
 
 @dataclass
 class CallerData:
     method: MainMethod
-    add_args: Optional[ParseCaller]
+    add_args: Optional[ArgumentsParsers]
+
+
+def exit(main: Callable):
+    """Exit to shell with error"""
+    app.exit(main)
 
 
 def run(
     main_method: Callable,
-    add_args: Optional[ParseCaller] = None,
+    add_args: Optional[ArgumentsParsers] = None,
     post_parse: Optional[Callable] = None,
     usage: Optional[str] = None,
     epilog: Optional[str] = None,
@@ -90,18 +100,14 @@ def run(
 
         def main(self, argument_handler):
             if self.method.needs_args:
-                global args  # leave parsed args available from this module
-                args = self.args = self.parse_args()
+                self.args = self.parse_args()
             if config_name:
-                return self.method(args, self.config())
+                return self.method(self.args, self.config())
             if self.method.needs_args:
-                return self.method(args)
+                return self.method(self.args)
             return self.method()
 
     caller = Caller(MainMethod(main_method), add_args)
     if caller.method.in_main_module:
         handler = arguments.ArgumentHandler()
-        sys.exit(handler.run(caller))
-
-
-args: Dict[str, Any] = {}
+        app.exit(lambda: handler.run(caller))

@@ -2,11 +2,58 @@
 
 import itertools
 
+from typing import Any
+from typing import Callable
 from typing import Iterable
 from typing import List
+from typing import Tuple
 from typing import TypeVar
 
 Unique = TypeVar("Unique")  # Generic type
+
+
+class Nones(list):
+    limit: int = 0
+
+    def __init__(self, limit: int, *args):
+        self.limit = limit
+        self.check(len(args))
+        self.args = args
+        super().__init__(*args)
+
+    def check(self, i) -> bool:
+        if self.limit < 0:
+            return True
+        if len(args) <= self.limit:
+            return True
+        raise TypeError(f"{self.__class__.__name__} has nothing at {i=}")
+
+    def __getitem__(self, i) -> Any:
+        self.check(i)
+        return super().__getitem__(i)
+
+
+class One(Nones):
+    def __init__(self, *args):
+        self.one, *_ = _args
+        super().__init__(1, [self.one])
+
+
+class Two(Nones):
+    def __init__(self, *args):
+        self.one, self.two, *_ = _args
+        super().__init__(2, args)
+
+
+class Many(Two):
+    def __init__(self, *args):
+        super().__init__(8, args)
+
+
+class Lots(Many):
+    def __init__(self, *args):
+        self.limit = -1
+        super().__init__(-1, args)
 
 
 # https://stackoverflow.com/a/25464724/500942
@@ -90,3 +137,19 @@ def as_list(item):
                 return list(item)
             except AttributeError:
                 raise TypeError(f"Cannot make a list from {item!r}")
+
+
+def splits(predicate: Callable, items: List) -> Tuple[List[Any], List[Any]]:
+    """Split a list into 2 lists based one the predicate
+
+    >>> is_odd = lambda x: bool(x % 2)
+    >>> odds, evens = splits(is_odd, [0, 1, 2, 3, 4, 5, 6])
+    >>> assert odds == [1, 3, 5]
+    >>> assert evens == [0, 2, 4, 6]
+    """
+    one: List[Any] = []
+    two: List[Any] = []
+    for item in items:
+        destination = one if predicate(item) else two
+        destination.append(item)
+    return one, two

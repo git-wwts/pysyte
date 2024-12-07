@@ -1,6 +1,15 @@
 import inspect
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Callable
+from typing import Optional
+from types import FrameType
+from types import ModuleType
+
+
+def unwrap(method: Callable) -> Callable:
+    """Get the original method from a methodeven if it's wrapped """
+    return getattr(method, "__wrapped__", method)
 
 
 @dataclass
@@ -11,27 +20,59 @@ class MethodData:
 class Method(MethodData):
     """A callable method with some convenience attributes"""
 
-    def __init__(self, method):
-        super().__init__(method)
+    def __init__(self, method: Callable):
+        super().__init__(unwrap(method))
+        if self.method != method:
+            self.wrapped = method
         self.code = self.method.__code__
-        self.module = inspect.getmodule(self.method)
-        self.doc = inspect.getdoc(self.method)
+        self.init_frame = inspect.currentframe()
+        self.callers = [self.init_frame.f_back]
 
     def run(self, *args, **kwargs):
         return self.method(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        call_frame = inspect.currentframe()
+        self.callers.append(call_frame.f_back)
+        return self.method(*args, **kwargs)
+
+    @property
+    def caller(self) -> Optional[FrameType]:
+        return self.callers[-1]
+
+    @property
+    def filename(self) -> str:
+        return self.code.co_filename
+
+    @property
+    def module(self) -> Optional[ModuleType]:
+        return inspect.getmodule(self.method)
+
+    @property
+    def doc(self) -> str:
+        return inspect.getdoc(self.method) or ""
 
     def __getattr__(self, name):
         try:
             return self.__getattribute__(name)
         except AttributeError:
-            return getattr(self.code, f"co_{name}")
+            if name == "__file__":
+                name = "filename"
+            if hasattr(self.code, f"co_{name}"):
+                return getattr(self.code, f"co_{name}")
+            raise
+
+
+@contextmanager
+def caller():
+    yield inspect.currentframe().f_back.f_back.f_back
 
 
 def _represent_args(*args, **kwargs):
     """Represent the aruments in a form suitable as a key (hashable)
 
     And which will be recognisable to user in error messages
-    >>> print(_represent_args([1, 2], **{'fred':'here'}))
+    >>> print(_represent_args([1, 2], **{'fred': 'here'}))
     [1, 2], fred='here'
     """
     argument_strings = [repr(a) for a in args]
@@ -47,6 +88,7 @@ def memoized(method):
         ... def test(arg):
         ...     print('called')
         ...     return arg + 1
+        ...
         >>> test(1)
         called
         2

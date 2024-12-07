@@ -1,22 +1,29 @@
+"""Import imports for pysyte"""
+import abc
 import os
 import importlib
 import linecache
 import ast
 from collections import defaultdict
 from contextlib import contextmanager
+from dataclasses import dataclass
+from typing import Iterator
+
+from pym.ast.visit import visitors
 
 
-class ImportVisitor(ast.NodeVisitor):
+class ImportVisitor(visitors.PymVisitor):
     def __init__(self):
         super().__init__()
         self.imports = defaultdict(list)
         self.froms = defaultdict(list)
 
+    @abc.abstractmethod
     def imported(self, name, line):
-        raise NotImplementedError(f"imported({name}, {line}")
+        pass
 
     def collect_names(self, node):
-        names = [(_.name, getattr(_, "asname", None)) for _ in node.names]
+        names = [(_.name, getattr(_, "asname", "")) for _ in node.names]
         for name, alias in names:
             self.imports[alias if alias else name].append(node.lineno)
         return names
@@ -58,23 +65,23 @@ class ImportVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_Import(self, node):
-        self.collect_names(node)
+        _ = self.collect_names(node)
         self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
         for decorator in node.decorator_list:
             name = self.find_name(decorator, "func", "value")
-            self.imported(name, decorator.lineno)
+            self.imported(name, decorator)
         self.generic_visit(node)
 
     def visit_Subscript(self, node):
         name = self.find_value_id(node)
         name2 = self.find_name(node, "value")
         assert name == name2
-        self.imported(name, node.lineno)
+        self.imported(name, node)
         subname = self.find_value_id(node.slice)
         assert subname == self.find_name(node.slice, "value")
-        self.imported(subname, node.lineno)
+        self.imported(subname, node)
         self.generic_visit(node)
 
     def visit_Attribute(self, node):
@@ -89,7 +96,7 @@ class ImportVisitor(ast.NodeVisitor):
     def visit_ClassDef(self, node):
         for base in node.bases:
             name = self.find_name(base, "value")
-            self.imported(name, node.lineno)
+            self.imported(name, node)
         self.generic_visit(node)
 
     def visit_Call(self, node):
@@ -100,25 +107,25 @@ class ImportVisitor(ast.NodeVisitor):
             name = self.find_value_id(func, "func")
             name2 = self.find_name(node, "value", "func")
             assert name == name2
-        self.imported(name, node.lineno)
+        self.imported(name, node)
         self.generic_visit(node)
 
     def visit_Name(self, node):
         name = self.find_name(node)
-        self.imported(name, node.lineno)
+        self.imported(name, node)
         self.generic_visit(node)
 
 
-class ImportUser(ImportVisitor):
+class UsedImportVistor(ImportVisitor):
     def __init__(self):
         super().__init__()
         self.used = defaultdict(list)
 
-    def imported(self, name, line):
+    def imported(self, name, node):
         if not name:
             return
         if name in self.imports:
-            self.used[name].append(line)
+            self.used[name].append(node.lineno)
 
     def unused(self):
         return {k: v for k, v in self.imports.items() if k not in self.used}
@@ -140,35 +147,43 @@ class ImportUser(ImportVisitor):
         return f"{line_number:4d}: {line}"
 
 
-def find_imports(tree):
-    import_user = ImportUser()
-    import_user.visit(tree)
+@dataclass
+class AS3:
+    path: str
+    tree: ast.Module
+
+
+def find_imports(as3: AS3) -> UsedImportVistor:
+    import_user = UsedImportVistor()
+    import_user.visit(as3.tree)
     return import_user
 
 
 @contextmanager
-def parse_python(script):
+def parse_python(script) -> Iterator[AS3]:
     with open(script) as stream:
         as3 = ast.parse(stream.read(), script)
-        as3.path = script
-        yield as3
+        yield AS3(script, as3)
 
 
-def extract_imports(script):
+def parse(script) -> UsedImportVistor:
     """Extract all imports from a python script"""
     if not os.path.isfile(script):
-        raise ValueError(f"Not a file: {script}")
+        raise FileNotFoundError(f"Not a file: {script}")
     with parse_python(script) as as3:
-        return find_imports(as3)
+        importer = find_imports(as3)
+        importer.path = script  # type: ignore [attr-defined]
+        return importer
 
 
 @contextmanager
 def importer(module):
     """Provide a context with that module
 
-    >>> with importer(os) as os_, importer('pysyte.imports') as imports:
+    >>> with importer(os) as os_, importer('pysyte.importers') as importers:
     ...     assert os_.path is os.path
-    ...     assert importer.__code__ == imports.importer.__code__
+    ...     assert importer.__code__ == importers.importer.__code__
+    ...
     """
     if isinstance(module, type(os)):
         yield module
